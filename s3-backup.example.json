@@ -1,0 +1,16 @@
+{
+  "properties": {
+    "backup_locations": [
+      {
+        "key": "documents",
+        "path": "<FULL_PATH>"
+      },
+      {
+        "key": "images",
+        "path": "<FULL_PATH>"
+      }
+    ],
+    "aws": {}
+  },
+  "state": {}
+}
