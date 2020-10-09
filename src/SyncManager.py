@@ -7,14 +7,6 @@ class SyncManager:
         logger.debug("Sync manager initialised")
 
     def run(self, data, dry_run):
-        # Loop over all results from file system
-        # If changed
-        # if dry run just log
-        # else
-        # FS create a zip
-        # push to AWS
-        # update data file
-        # else log not changed
         files_to_backup = []
         for a_file in self.file_system.files_to_sync(data):
             self.logger.info("Checking %s", a_file.path)
@@ -23,6 +15,18 @@ class SyncManager:
                 self.logger.info("CHANGED: %s", a_file.path)
             else:
                 self.logger.info("UNCHANGED: %s", a_file.path)
+        if dry_run:
+            self.log_files_to_backup(files_to_backup)
+        else:
+            self.backup_files(files_to_backup, data)
+
+    def log_files_to_backup(self, files):
+        self.logger.info("")
+        self.logger.info(
+            "The following files will be backed up:")
+        for a_file in files:
+            self.logger.info("    %s", a_file.path)
+        self.logger.info("Run again without --dry-run to perfrom the backup")
 
     def file_changed(self, a_file, data):
         """Return true if we have never backed up this file, or it has been changed since the last backup"""
@@ -31,3 +35,9 @@ class SyncManager:
             return True
         else:
             return False
+
+    def backup_files(self, files, data):
+        self.logger.info("Starting AWS sync...")
+        # FS create a zip
+        # push to AWS
+        # update data file

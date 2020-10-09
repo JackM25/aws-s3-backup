@@ -1,7 +1,7 @@
 import json
-
 from src.models.BackupLocation import BackupLocation
 from src.models.FileState import FileState
+
 
 class Data:
     """Wrapper around the data file"""

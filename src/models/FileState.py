@@ -1,9 +1,10 @@
 from datetime import datetime
 
+
 class FileState:
     """State of a backed up file"""
 
-    def __init__(self, key, version, size = 0, date = datetime(1970, 1, 1, 0, 0, 0, 0)):
+    def __init__(self, key, version, size=0, date=datetime(1970, 1, 1, 0, 0, 0, 0)):
         self.key = key
         self.version = version
         self.size = size
