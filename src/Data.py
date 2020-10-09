@@ -30,8 +30,8 @@ class Data:
 
     def latest_state_for(self, key):
         if self.state():
-            all_states = self.state()[key]
-            latest_version = max(list(all_states.keys()))
-            return FileState.from_dict(key, latest_version, self.state()[key][latest_version])
-        else:
-            return FileState(key, None)
+            if self.state()[key]:
+                all_states = self.state()[key]
+                latest_version = max(list(all_states.keys()))
+                return FileState.from_dict(key, latest_version, self.state()[key][latest_version])
+        return FileState(key, None)
