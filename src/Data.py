@@ -34,4 +34,21 @@ class Data:
                 all_states = self.state()[key]
                 latest_version = max(list(all_states.keys()))
                 return FileState.from_dict(key, latest_version, self.state()[key][latest_version])
-        return FileState(key, None)
+        return FileState(key, 'v0')
+
+    def add_file_state(self, file_state):
+        self.logger.debug('Updating state')
+
+        if not file_state.key in self.state():
+            self.state()[file_state.key] = {}
+
+        self.state()[file_state.key][file_state.version] = {
+            'size': file_state.size, 'date': file_state.date.isoformat()}
+        self.write_state_to_file()
+
+    def write_state_to_file(self):
+        self.logger.debug('Writing state to disk...')
+        f = open(self.file_location, 'w')
+        json.dump(self.data, f, ensure_ascii=False, indent=4)
+        f.close()
+        self.logger.debug('State saved')

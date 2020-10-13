@@ -1,3 +1,5 @@
+from src.models.FileState import FileState
+
 class SyncManager:
     """Logic for detecting files to backup and then sending them to AWS"""
 
@@ -32,12 +34,15 @@ class SyncManager:
         """Return true if we have never backed up this file, or it has been changed since the last backup"""
         state = data.latest_state_for(a_file.key)
         if a_file.size != state.size:
+            a_file.set_version(state.get_next_version())
             return True
         else:
+            a_file.set_version(state.version)
             return False
 
     def backup_files(self, files, data):
-        self.logger.info("Starting AWS sync...")
-        # FS create a zip
-        # push to AWS
-        # update data file
+        self.logger.info("Starting sync...")
+        for a_file in files:
+            archive = self.file_system.create_zip_archive(a_file)
+            # TODO: Push to AWS
+            data.add_file_state(FileState.from_archive(archive))

@@ -4,14 +4,18 @@ import os
 class File:
     """A file or folder that should be considered for backup"""
 
-    def __init__(self, key, entry, logger):
+    def __init__(self, key, entry, parent_dir, logger):
         self.key = key
         self.path = entry.path
         self.logger = logger
+        self.parent_dir = parent_dir
+        self.name = entry.name
         if entry.is_dir():
             self.size = self.get_directory_size(entry.path)
+            self.is_dir = True
         if entry.is_file():
             self.size = entry.stat().st_size
+            self.is_dir = False
 
     def get_directory_size(self, dir):
         total = 0
@@ -22,7 +26,7 @@ class File:
                 elif entry.is_dir():
                     total += self.get_directory_size(entry.path)
         except NotADirectoryError:
-            # if `directory` isn't a directory, get the file size then
+            # if directory isn't a directory, get the file size 
             self.logger.error("Expected %s to be a directory", dir)
             return os.path.getsize(dir)
         except PermissionError:
@@ -30,3 +34,6 @@ class File:
             self.logger.error("Permission error accessing %s", dir)
             return 0
         return total
+
+    def set_version(self, version):
+        self.version = version
