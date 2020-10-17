@@ -13,6 +13,7 @@ class FileSystem:
     def __init__(self, logger):
         self.logger = logger
         self.temp_dir = os.path.join(tempfile.gettempdir(), 'aws-s3-backup')
+        self.logger.debug("File system initialised")
 
         if not os.path.exists(self.temp_dir):
             self.logger.debug(
@@ -23,6 +24,7 @@ class FileSystem:
 
     def files_to_sync(self, data):
         files = []
+        self.logger.debug("Gathering files to check...")
         for backup_location in data.backup_locations():
             for entry in os.scandir(backup_location.path):
                 if entry.is_symlink() or self.is_junction(entry.path):
@@ -66,18 +68,22 @@ class FileSystem:
             return False
 
     def create_zip_archive(self, file, version):
+        self.logger.info("Creating zip archive for %s", file.name)
         archive = Archive(file.key, version, file.size, datetime.now())
         archive_name = archive.get_name()
 
         if file.is_dir:
+            self.logger.debug("Zipping folder")
             archive_path = shutil.make_archive(os.path.join(
                 self.temp_dir, archive_name), 'zip', file.get_path())
         else:
+            self.logger.debug("Zipping file")
             archive_path = shutil.make_archive(os.path.join(
                 self.temp_dir, archive_name), 'zip', file.parent_dir, file.name)
 
         archive_size = Path(archive_path).stat().st_size
         archive.update_location(archive_path)
         archive.update_size(archive_size)
+        self.logger.debug("Zip archive created")
 
         return archive

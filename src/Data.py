@@ -16,6 +16,7 @@ class Data:
         self.data = json.load(f)
         f.close()
         self.logger.debug('Data file loaded')
+        self.logger.debug("Data manager initialised")
 
     def properties(self):
         return self.data['properties']
@@ -25,11 +26,13 @@ class Data:
 
     def backup_locations(self):
         locations = []
+        self.logger.debug("Reading backup locations from data file")
         for location in self.properties()['backup_locations']:
             locations.append(BackupLocation(location['key'], location['path']))
         return locations
 
     def latest_archive_for(self, key):
+        self.logger.debug("Retrieving latest archive for %s from data file", key)
         if self.state():
             if self.state()[key]:
                 all_states = self.state()[key]
@@ -43,10 +46,11 @@ class Data:
                     self.state()[key][latest_version]['location'],
                     self.state()[key][latest_version]['size'],
                 )
+        self.logger.debug("No archive found, returning empty archive")
         return Archive(key, 'v0', 0, None)
 
     def add_archive_to_state(self, archive):
-        self.logger.debug('Updating state')
+        self.logger.debug('Adding %s to state', archive.get_name())
 
         if not archive.key in self.state():
             self.state()[archive.key] = {}

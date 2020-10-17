@@ -4,10 +4,11 @@ class SyncManager:
     def __init__(self, file_system, logger):
         self.logger = logger
         self.file_system = file_system
-        logger.debug("Sync manager initialised")
+        self.logger.debug("Sync manager initialised")
 
     def run(self, data, dry_run):
         changes = []
+        self.logger.info("Checking for changed files...")
         for a_file in self.file_system.files_to_sync(data):
             self.logger.info("Checking %s", a_file.get_path())
 
@@ -47,11 +48,12 @@ class SyncManager:
         self.logger.info("Starting sync...")
         file_count = 0
         for a_change in changes:
+            self.logger.info("Syncing file %i of %i", file_count+1, len(changes))
             archive = self.file_system.create_zip_archive(a_change['file'], a_change['version'])
             # TODO: Push to AWS
             data.add_archive_to_state(archive)
             file_count += 1
-        self.logger.info("Sync completed, uploaded %i files", file_count)
+        self.logger.info("Sync completed, backed up %i files", file_count)
         self.logger.info("Backup completed successfully")
 
     def increment_version(self, version):
