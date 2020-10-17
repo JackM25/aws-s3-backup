@@ -1,6 +1,7 @@
 import json
+from datetime import datetime
 from src.models.BackupLocation import BackupLocation
-from src.models.FileState import FileState
+from src.models.Archive import Archive
 
 
 class Data:
@@ -25,25 +26,38 @@ class Data:
     def backup_locations(self):
         locations = []
         for location in self.properties()['backup_locations']:
-            locations.append(BackupLocation.from_dict(location))
+            locations.append(BackupLocation(location['key'], location['path']))
         return locations
 
-    def latest_state_for(self, key):
+    def latest_archive_for(self, key):
         if self.state():
             if self.state()[key]:
                 all_states = self.state()[key]
                 latest_version = max(list(all_states.keys()))
-                return FileState.from_dict(key, latest_version, self.state()[key][latest_version])
-        return FileState(key, 'v0')
+                return Archive(
+                    key,
+                    latest_version,
+                    self.state()[key][latest_version]['raw_size'],
+                    datetime.fromisoformat(
+                        self.state()[key][latest_version]['date']),
+                    self.state()[key][latest_version]['location'],
+                    self.state()[key][latest_version]['size'],
+                )
+        return Archive(key, 'v0', 0, None)
 
-    def add_file_state(self, file_state):
+    def add_archive_to_state(self, archive):
         self.logger.debug('Updating state')
 
-        if not file_state.key in self.state():
-            self.state()[file_state.key] = {}
+        if not archive.key in self.state():
+            self.state()[archive.key] = {}
 
-        self.state()[file_state.key][file_state.version] = {
-            'size': file_state.size, 'date': file_state.date.isoformat()}
+        self.state()[archive.key][archive.version] = {
+            'name': archive.get_name(),
+            'size': archive.size,
+            'date': archive.date.isoformat(),
+            'location': archive.location,
+            'raw_size': archive.raw_size,
+        }
         self.write_state_to_file()
 
     def write_state_to_file(self):

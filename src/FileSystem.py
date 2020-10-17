@@ -13,12 +13,13 @@ class FileSystem:
     def __init__(self, logger):
         self.logger = logger
         self.temp_dir = os.path.join(tempfile.gettempdir(), 'aws-s3-backup')
+
         if not os.path.exists(self.temp_dir):
-            self.logger.debug("Temp dir does not exists, creating at %s", self.temp_dir)
+            self.logger.debug(
+                "Temp dir does not exists, creating at %s", self.temp_dir)
             os.makedirs(self.temp_dir)
         else:
             self.logger.debug("Using temp dir: %s", self.temp_dir)
-
 
     def files_to_sync(self, data):
         files = []
@@ -29,8 +30,34 @@ class FileSystem:
                     continue
                 key = backup_location.key + '.' + \
                     (entry.name).replace(" ", "-").replace(".", "~")
-                files.append(File(key, entry, backup_location.path, self.logger))
+                files.append(
+                    File(key, self.get_size(entry), entry.name, entry.is_dir(), backup_location.path))
+
         return iter(files)
+
+    def get_size(self, entry):
+        if entry.is_file():
+            return entry.stat().st_size
+        else:
+            return self.get_directory_size(entry.path)
+
+    def get_directory_size(self, dir):
+        total = 0
+        try:
+            for entry in os.scandir(dir):
+                if entry.is_file():
+                    total += entry.stat().st_size
+                elif entry.is_dir():
+                    total += self.get_directory_size(entry.path)
+        except NotADirectoryError:
+            # if directory isn't a directory, get the file size
+            self.logger.error("Expected %s to be a directory", dir)
+            return os.path.getsize(dir)
+        except PermissionError:
+            # if for whatever reason we can't open the folder, return 0
+            self.logger.error("Permission error accessing %s", dir)
+            return 0
+        return total
 
     def is_junction(self, dir):
         try:
@@ -38,10 +65,19 @@ class FileSystem:
         except OSError:
             return False
 
-    def create_zip_archive(self, file):
+    def create_zip_archive(self, file, version):
+        archive = Archive(file.key, version, file.size, datetime.now())
+        archive_name = archive.get_name()
+
         if file.is_dir:
-            archive_path = shutil.make_archive(os.path.join(self.temp_dir, (file.key + '.' + file.version)), 'zip', file.path)
+            archive_path = shutil.make_archive(os.path.join(
+                self.temp_dir, archive_name), 'zip', file.get_path())
         else:
-            archive_path = shutil.make_archive(os.path.join(self.temp_dir, (file.key + '.' + file.version)), 'zip', file.parent_dir, file.name)
-        zip_size = Path(archive_path).stat().st_size
-        return Archive(file.key, file.version, archive_path, zip_size, datetime.now(), file)
+            archive_path = shutil.make_archive(os.path.join(
+                self.temp_dir, archive_name), 'zip', file.parent_dir, file.name)
+
+        archive_size = Path(archive_path).stat().st_size
+        archive.update_location(archive_path)
+        archive.update_size(archive_size)
+
+        return archive

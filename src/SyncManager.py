@@ -1,5 +1,3 @@
-from src.models.FileState import FileState
-
 class SyncManager:
     """Logic for detecting files to backup and then sending them to AWS"""
 
@@ -9,40 +7,52 @@ class SyncManager:
         logger.debug("Sync manager initialised")
 
     def run(self, data, dry_run):
-        files_to_backup = []
+        changes = []
         for a_file in self.file_system.files_to_sync(data):
-            self.logger.info("Checking %s", a_file.path)
-            if self.file_changed(a_file, data):
-                files_to_backup.append(a_file)
-                self.logger.info("CHANGED: %s", a_file.path)
+            self.logger.info("Checking %s", a_file.get_path())
+
+            file_changed, version = self.check_file_backup(a_file, data)
+            if file_changed:
+                changes.append({'file': a_file, 'version': version})
+                self.logger.info("CHANGED: %s", a_file.get_path())
             else:
-                self.logger.info("UNCHANGED: %s", a_file.path)
+                self.logger.info("UNCHANGED: %s", a_file.get_path())
+
         if dry_run:
-            self.log_files_to_backup(files_to_backup)
+            self.log_files_to_backup(changes)
         else:
-            self.backup_files(files_to_backup, data)
+            self.backup_files(changes, data)
 
-    def log_files_to_backup(self, files):
+    def check_file_backup(self, a_file, data):
+        """Check if we need to back up this file"""
+        archive = data.latest_archive_for(a_file.key)
+        if a_file.size != archive.raw_size:
+            return (True, self.increment_version(archive.version))
+        else:
+            return (False, archive.version)
+
+    def log_files_to_backup(self, changes):
         self.logger.info("")
-        self.logger.info(
-            "The following files will be backed up:")
-        for a_file in files:
-            self.logger.info("    %s", a_file.path)
-        self.logger.info("Run again without --dry-run to perfrom the backup")
-
-    def file_changed(self, a_file, data):
-        """Return true if we have never backed up this file, or it has been changed since the last backup"""
-        state = data.latest_state_for(a_file.key)
-        if a_file.size != state.size:
-            a_file.set_version(state.get_next_version())
-            return True
+        if len(changes) == 0:
+            self.logger.info("No changes detected, 0 files will be backed up")
         else:
-            a_file.set_version(state.version)
-            return False
+            self.logger.info(
+                "The following files will be backed up:")
+            for a_change in changes:
+                self.logger.info("    %s will be updated to %s", a_change['file'].get_path(), a_change['version'])
+            self.logger.info(
+                "Run again without --dry-run to perfrom the backup")
 
-    def backup_files(self, files, data):
+    def backup_files(self, changes, data):
         self.logger.info("Starting sync...")
-        for a_file in files:
-            archive = self.file_system.create_zip_archive(a_file)
+        file_count = 0
+        for a_change in changes:
+            archive = self.file_system.create_zip_archive(a_change['file'], a_change['version'])
             # TODO: Push to AWS
-            data.add_file_state(FileState.from_archive(archive))
+            data.add_archive_to_state(archive)
+            file_count += 1
+        self.logger.info("Sync completed, uploaded %i files", file_count)
+        self.logger.info("Backup completed successfully")
+
+    def increment_version(self, version):
+        return 'v' + str(int(version[1:]) + 1)

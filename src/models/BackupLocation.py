@@ -4,7 +4,3 @@ class BackupLocation:
     def __init__(self, key, path):
         self.key = key
         self.path = path
-
-    @classmethod
-    def from_dict(cls, dict):
-        return cls(dict['key'], dict['path'])
