@@ -54,6 +54,7 @@ class SyncManager:
             data.add_archive_to_state(archive)
             file_count += 1
         self.logger.info("Sync completed, backed up %i files", file_count)
+        self.file_system.empty_temp_folder()
         self.logger.info("Backup completed successfully")
 
     def increment_version(self, version):
