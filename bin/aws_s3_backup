@@ -1,0 +1,4 @@
+startDir=$(pwd)
+cd $(dirname "$0")/../
+pipenv run main.py "$@"
+cd $startDir
