@@ -1,2 +1,5 @@
 # aws-s3-backup
 Python script for backing up files to AWS S3
+
+
+STANDARD | REDUCED_REDUNDANCY | STANDARD_IA | ONEZONE_IA | INTELLIGENT_TIERING | GLACIER | DEEP_ARCHIVE

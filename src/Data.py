@@ -25,6 +25,18 @@ class Data:
     def state(self):
         return self._data['state']
 
+    def aws_access_key(self):
+        return self.properties()['aws']['access_key']
+
+    def aws_secret_key(self):
+        return self.properties()['aws']['secret_key']
+
+    def aws_bucket(self):
+        return self.properties()['aws']['bucket']
+
+    def aws_storage_class(self):
+        return self.properties()['aws']['storage_class']
+
     def backup_locations(self):
         locations = []
         self._logger.debug("Reading backup locations from data file")
@@ -36,7 +48,7 @@ class Data:
         self._logger.debug(
             "Retrieving latest archive for %s from data file", key)
         if self.state():
-            if self.state()[key]:
+            if key in self.state():
                 all_states = self.state()[key]
                 latest_version = max(list(all_states.keys()))
                 return Archive(

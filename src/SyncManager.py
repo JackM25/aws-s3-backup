@@ -49,17 +49,29 @@ class SyncManager:
     def _backup_files(self, changes, data):
         self._logger.info("Starting sync...")
         file_count = 0
-        
+        file_success_count = 0
+
         for a_change in changes:
             self._logger.info("Syncing file %i of %i",
                              file_count+1, len(changes))
             archive = self._file_system.create_zip_archive(
                 a_change['file'], a_change['version'])
-            self._aws.upload_archive(archive)
-            data.add_archive_to_state(archive)
-            file_count += 1
+            upload_result = self._aws.upload_archive(archive)
 
-        self._logger.info("Sync completed, backed up %i files", file_count)
+            if upload_result:
+                data.add_archive_to_state(archive)
+                file_count += 1
+                file_success_count +=1
+                self._logger.info("File synced")
+            else:
+                file_count += 1
+                self._logger.error("File sync failed, %s has not been uploaded", archive.get_name())
+                self._logger.error("Run this process again to try again")
+
+        self._logger.info("Sync completed, backed up %i files", file_success_count)
+        if file_count - file_success_count > 0:
+            self._logger.error("%i files could not be backed up", file_count - file_success_count)
+
         self._file_system.empty_temp_folder()
         self._logger.info("Backup completed successfully")
 

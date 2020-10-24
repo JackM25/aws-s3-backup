@@ -3,6 +3,7 @@ import logging
 from src.Data import Data
 from src.FileSystem import FileSystem
 from src.SyncManager import SyncManager
+from src.AWS import AWS
 
 
 def main(data_file_location, dry_run):
@@ -10,7 +11,9 @@ def main(data_file_location, dry_run):
     logger.info('Starting AWS S3 Backup...')
     file_system = FileSystem(logger)
     data = Data(data_file_location, logger)
-    sync_manager = SyncManager(file_system, logger)
+    aws = AWS(data.aws_access_key(), data.aws_secret_key(),
+              data.aws_bucket(), data.aws_storage_class(), logger)
+    sync_manager = SyncManager(file_system, aws, logger)
     sync_manager.run(data, dry_run)
 
 
