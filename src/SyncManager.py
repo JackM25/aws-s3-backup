@@ -42,7 +42,7 @@ class SyncManager:
                 "The following files will be backed up:")
             for a_change in changes:
                 self._logger.info("    %s will be updated to %s",
-                                 a_change['file'].get_path(), a_change['version'])
+                                  a_change['file'].get_path(), a_change['version'])
             self._logger.info(
                 "Run again without --dry-run to perfrom the backup")
 
@@ -53,7 +53,7 @@ class SyncManager:
 
         for a_change in changes:
             self._logger.info("Syncing file %i of %i",
-                             file_count+1, len(changes))
+                              file_count+1, len(changes))
             archive = self._file_system.create_zip_archive(
                 a_change['file'], a_change['version'])
             upload_result = self._aws.upload_archive(archive)
@@ -61,16 +61,19 @@ class SyncManager:
             if upload_result:
                 data.add_archive_to_state(archive)
                 file_count += 1
-                file_success_count +=1
+                file_success_count += 1
                 self._logger.info("File synced")
             else:
                 file_count += 1
-                self._logger.error("File sync failed, %s has not been uploaded", archive.get_name())
+                self._logger.error(
+                    "File sync failed, %s has not been uploaded", archive.get_name())
                 self._logger.error("Run this process again to try again")
 
-        self._logger.info("Sync completed, backed up %i files", file_success_count)
+        self._logger.info(
+            "Sync completed, backed up %i files", file_success_count)
         if file_count - file_success_count > 0:
-            self._logger.error("%i files could not be backed up", file_count - file_success_count)
+            self._logger.error("%i files could not be backed up",
+                               file_count - file_success_count)
 
         self._file_system.empty_temp_folder()
         self._logger.info("Backup completed successfully")
